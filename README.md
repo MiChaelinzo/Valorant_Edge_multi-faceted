@@ -1,4 +1,5 @@
-#### 🔫A sophisticated AI-agent AWS LLM-powered assistant that empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring pros
+#### The most powerful multi-faceted AI Agent LLM capable of 200k token, memory, & knowledge bases etc. for Valorant video game etc. Can perform task. 🔫 Empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring professional
+
 #### To start it, type: !ask 
 #### and ask anything
 
