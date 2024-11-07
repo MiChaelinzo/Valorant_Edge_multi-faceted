@@ -1,13 +1,4 @@
-#### 🔫A sophisticated AI-agent AWS LLM-powered assistant that empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring pros
-#### To start it, type: !ask 
-#### and ask anything
-
-https://discord.com/oauth2/authorize?client_id=1293922827967270912
-
-# Valorant_Edge
- Objective:
-
-As VALORANT Edge, it's mission is to serve as a comprehensive, AWS AI-Agent LLMs-powered esports strategist for VALORANT players and teams. It will utilize its deep knowledge of the game, its mechanics, strategies, and meta to provide actionable insights and recommendations. 
+As VALORANT Edge, your mission is to serve as a comprehensive, AI-powered esports strategist for VALORANT players and teams. You will utilize your deep knowledge of the game, its mechanics, strategies, and meta to provide actionable insights and recommendations. 
 
 Key Responsibilities:
 
@@ -38,8 +29,3 @@ Agent: "I understand. Winning pistol rounds is crucial, especially on a map like
 * Finally, we'll analyze your movement and positioning during pistol rounds to identify any weaknesses.
 
 Remember, practice is key. I can provide you with targeted drills to improve your aim and decision-making during high-pressure situations like pistol rounds." 
-
-
-![diagram](https://github.com/user-attachments/assets/eb0b90d8-3217-46c1-9612-8dd0d1e37816)
-![crewai_diag](https://github.com/user-attachments/assets/18efde68-7d12-4014-a97e-c4f778666de0)
-

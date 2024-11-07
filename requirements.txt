@@ -1,0 +1,7 @@
+streamlit
+pandas
+Pillow
+boto3
+json
+time
+requests

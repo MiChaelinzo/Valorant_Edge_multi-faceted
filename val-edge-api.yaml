@@ -1,0 +1,156 @@
+openapi: 3.0.1
+info:
+  title: VALORANT_EDGE API
+  description: API for an AI-powered esports strategist for VALORANT
+  version: 1.0.0
+paths:
+  /analyze-match:
+    post:
+      description: Analyzes a completed VALORANT match and provides insights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                match_id:
+                  type: string
+                  description: The unique ID of the completed VALORANT match.
+                user_id: 
+                  type: string
+                  description: The unique ID of the user who played the match.
+              required:
+                - match_id
+                - user_id
+      responses:
+        "200":
+          description: Successful match analysis response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchAnalysis'
+        "400":
+          description: Bad request. Missing or invalid request data.
+        "500":
+          description: Internal server error.  Issue with processing the request. 
+
+  /agent-info:
+    get:
+      description: Retrieves information about a specific VALORANT agent
+      parameters:
+        - name: agentName
+          in: query
+          description: Name of the agent (e.g., 'Jett', 'Reyna').
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response with agent information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInfo' 
+        "400":
+          description: Bad request. Missing or invalid agent name. 
+        "404":
+          description: Agent not found.
+
+  /recommend-strategy: 
+    post:
+      description: Recommends strategies for a given map and team composition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                map:
+                  type: string
+                  description: The name of the VALORANT map (e.g., 'Bind', 'Haven').
+                teamComposition:
+                  type: array
+                  description: An array of agent names in the team composition.
+                  items:
+                    type: string
+              required:
+                - map
+                - teamComposition
+      responses:
+        "200":
+          description: Successful response with strategy recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyRecommendations'
+        "400":
+          description: Bad request. Missing or invalid data (map or team composition). 
+
+components:
+  schemas:
+    MatchAnalysis:
+      type: object
+      description: Detailed analysis of a VALORANT match
+      properties:
+        performanceSummary: 
+          type: string
+          description: A concise text summary of the player's overall performance.
+        keyInsights:
+          type: array
+          description: A list of key insights derived from match data analysis.
+          items:
+            type: string
+        recommendations:
+          type: array
+          description: A list of actionable recommendations for improvement.
+          items:
+            type: string
+        sentiment:
+          type: string
+          description: The overall sentiment detected from in-game chat (e.g., POSITIVE, NEGATIVE, NEUTRAL).
+        # ... add more fields for specific match stats as needed ... 
+
+    AgentInfo:
+      type: object
+      description: Information about a VALORANT agent
+      properties:
+        name:
+          type: string
+          description: The name of the agent.
+        role:
+          type: string
+          description: The agent's role (e.g., Duelist, Controller, Initiator, Sentinel).
+        abilities:
+          type: array
+          description: A list of the agent's abilities.
+          items:
+            type: object
+            properties:
+              name: 
+                type: string
+                description: The name of the ability.
+              description:
+                type: string
+                description: A description of the ability.
+        # ... add other fields as needed ... 
+
+    StrategyRecommendations:
+      type: object
+      description: Strategic recommendations for a given map and team composition
+      properties:
+        generalStrategy:
+          type: string
+          description: Overall strategic approach for the map and team. 
+        attackStrategies: 
+          type: array
+          description: Specific strategies for attacking on the map.
+          items:
+            type: string
+        defenseStrategies:
+          type: array
+          description: Specific strategies for defending on the map.
+          items:
+            type: string 
+        # ... add more fields for specific recommendations ... 

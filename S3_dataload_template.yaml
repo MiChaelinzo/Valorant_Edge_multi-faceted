@@ -1,0 +1,338 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudFormation template for VALORANT_EDGE - AI Esports Strategist.",
+  "Resources": {
+    "CloudWatchLogsPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "!Sub \"arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*\""
+            }
+          ]
+        }
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AWSLambdaExecute",
+          "!Ref CloudWatchLogsPolicy"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "LambdaCustomPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": "!GetAtt ActionCallDLQ.Arn"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "comprehend:DetectSentiment"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "bedrock:*"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "LambdaInvokePolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:InvokeFunction"
+              ],
+              "Resource": "!Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ActionCall-${AWS::AccountId}'"
+            }
+          ]
+        }
+      }
+    },
+    "BedrockAgentExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "bedrock.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonBedrockFullAccess",
+          "!Ref LambdaInvokePolicy"
+        ]
+      }
+    },
+    "ActionCallDLQ": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "!Sub \"ActionCallDLQ-${AWS::AccountId}-${AWS::Region}\""
+      }
+    },
+    "ActionCall": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "!Sub 'ActionCall-${AWS::AccountId}'",
+        "Handler": "index.lambda_handler",
+        "Role": "!GetAtt LambdaExecutionRole.Arn",
+        "Runtime": "python3.12",
+        "MemorySize": 1024,
+        "Timeout": 60,
+        "DeadLetterConfig": {
+          "TargetArn": "!GetAtt ActionCallDLQ.Arn"
+        },
+        "Code": {
+          "ZipFile": "|
+            import json
+            import boto3
+            import requests
+
+            # Initialize Bedrock and Comprehend clients
+            bedrock_runtime = boto3.client('bedrock-runtime')
+            comprehend = boto3.client('comprehend')
+
+            # Replace with your actual VALORANT API key
+            VALORANT_API_KEY = 'YOUR_VALORANT_API_KEY'
+
+            def lambda_handler(event, context):
+                print(event)
+
+                result = ''
+                response_code = 200
+                action_group = event['actionGroup']
+                api_path = event['apiPath']
+
+                print(\"api_path: \", api_path)
+
+                if api_path == '/analyze-match':
+                    result = analyze_match(event)
+                elif api_path == '/agent-info':
+                    result = get_agent_info(event)
+                elif api_path == '/recommend-strategy':
+                    result = recommend_strategy(event)
+                else:
+                    response_code = 404
+                    result = f\"Unrecognized api path: {action_group}::{api_path}\"
+
+                response_body = {
+                    'application/json': {
+                        'body': result
+                    }
+                }
+
+                action_response = {
+                    'actionGroup': event['actionGroup'],
+                    'apiPath': event['apiPath'],
+                    'httpMethod': event['httpMethod'],
+                    'httpStatusCode': response_code,
+                    'responseBody': response_body
+                }
+
+                api_response = {'messageVersion': '1.0', 'response': action_response}
+                return api_response
+
+
+            def get_named_parameter(event, name):
+                return next(item for item in event['parameters'] if item['name'] == name)['value']
+
+
+            def analyze_match(event):
+                match_id = get_named_parameter(event, 'match_id')
+                user_id = get_named_parameter(event, 'user_id')
+                match_data = get_match_data_from_api(match_id) # Assuming you have a function for this
+                user_stats = extract_user_stats(match_data, user_id) # Assuming you have a function for this 
+                sentiment = analyze_sentiment(match_data)  # Assuming you have a function for this
+
+                # Example prompt (replace with your actual prompt and model)
+                prompt = f\"\"\"
+                You are VALORANT_EDGE, a VALORANT esports strategist. 
+                Analyze this match data and provide insights and recommendations. 
+                
+                Match Data:
+                {json.dumps(user_stats, indent=4)}
+
+                Sentiment: {sentiment}
+
+                Focus on:
+                - Agent-specific tips
+                - Areas for improvement
+                - Economic decisions 
+                \"\"\"
+
+                analysis = generate_text_from_bedrock(prompt) # Assuming you have a function for this
+                return analysis
+
+            def get_agent_info(event):
+                agent_name = get_named_parameter(event, 'agentName')
+                # ... (Your logic to retrieve and return agent information) ...
+                return agent_info
+
+            def recommend_strategy(event):
+                map_name = get_named_parameter(event, 'map')
+                team_comp = get_named_parameter(event, 'teamComposition')
+                # ... (Your logic to generate strategy recommendations) ... 
+                return strategy_recommendations
+
+            # --- Example placeholder functions for interacting with APIs ---
+            def get_match_data_from_api(match_id):
+                # ... (Implement logic to fetch match data from VALORANT API)
+                api_endpoint = f'https://api.valorant.com/v1/matches/{match_id}' 
+                headers = {
+                  'X-Riot-Token': VALORANT_API_KEY
+                }
+                response = requests.get(api_endpoint, headers=headers)
+
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    raise Exception(f\"VALORANT API error: {response.status_code}\") 
+
+            def extract_user_stats(match_data, user_id):
+                # ... (Implement logic to extract relevant user stats from match_data)
+                pass
+
+            def analyze_sentiment(match_data):
+                # ... (Implement logic to analyze chat sentiment using Comprehend)
+                pass 
+
+            def generate_text_from_bedrock(prompt):
+                # ... (Implement logic to generate text from Bedrock)
+                pass 
+          "
+        }
+      }
+    },
+    "LambdaInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "DependsOn": "ActionCall",
+      "Properties": {
+        "FunctionName": "!GetAtt ActionCall.Arn",
+        "Action": "lambda:InvokeFunction",
+        "Principal": "bedrock.amazonaws.com",
+        "SourceArn": "!Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*'"
+      }
+    },
+    "BedrockAgent": {
+      "Type": "AWS::Bedrock::Agent",
+      "DependsOn": "LambdaInvokePermission",
+      "Properties": {
+        "AgentName": "!Sub 'VALORANT-EDGE-${AWS::AccountId}'",
+        "AgentResourceRoleArn": "!GetAtt BedrockAgentExecutionRole.Arn",
+        "AutoPrepare": "True",
+        "FoundationModel": "anthropic.claude-v2",
+        "Instruction": "You are VALORANT_EDGE, an AI-powered esports strategist for VALORANT. Your mission is to help players and teams improve by providing data-driven analysis, strategic advice, and training recommendations. ",
+        "Description": "Generative AI for VALORANT Esports Strategy",
+        "IdleSessionTTLInSeconds": 900,
+        "ActionGroups": [
+          {
+            "ActionGroupName": "VALORANT-EDGE_Actions",
+            "Description": "Actions for analyzing matches, giving agent info, and recommending strategies.",
+            "ActionGroupExecutor": {
+              "Lambda": "!Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ActionCall-${AWS::AccountId}'"
+            },
+            "ApiSchema": {
+              "Payload": 
+                "{ \"openapi\": \"3.0.1\", \"info\": { \"title\": \"VALORANT_EDGE API\", \"description\": \"API for an AI-powered esports strategist for VALORANT\", \"version\": \"1.0.0\" }, \"paths\": { \"/analyze-match\": { \"post\": { \"description\": \"Analyzes a completed VALORANT match and provides insights\", \"requestBody\": { \"required\": true, \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\", \"properties\": { \"match_id\": { \"type\": \"string\", \"description\": \"The unique ID of the completed VALORANT match.\" }, \"user_id\": { \"type\": \"string\", \"description\": \"The unique ID of the user who played the match.\" } }, \"required\": [ \"match_id\", \"user_id\" ] } } }, \"responses\": { \"200\": { \"description\": \"Successful match analysis response\", \"content\": { \"application/json\": { \"schema\": { \"$ref\": '#/components/schemas/MatchAnalysis' } } } }, \"400\": { \"description\": \"Bad request. Missing or invalid request data.\" }, \"500\": { \"description\": \"Internal server error.  Issue with processing the request.\" } } }, \"/agent-info\": { \"get\": { \"description\": \"Retrieves information about a specific VALORANT agent\", \"parameters\": [ { \"name\": \"agentName\", \"in\": \"query\", \"description\": \"Name of the agent (e.g., 'Jett', 'Reyna').\", \"required\": true, \"schema\": { \"type\": \"string\" } } ], \"responses\": { \"200\": { \"description\": \"Successful response with agent information\", \"content\": { \"application/json\": { \"schema\": { \"$ref\": '#/components/schemas/AgentInfo' } } } }, \"400\": { \"description\": \"Bad request. Missing or invalid agent name.\" }, \"404\": { \"description\": \"Agent not found.\" } } }, \"/recommend-strategy\": { \"post\": { \"description\": \"Recommends strategies for a given map and team composition\", \"requestBody\": { \"required\": true, \"content\": { \"application/json\": { \"schema\": { \"type\": \"object\", \"properties\": { \"map\": { \"type\": \"string\", \"description\": \"The name of the VALORANT map (e.g., 'Bind', 'Haven').\" }, \"teamComposition\": { \"type\": \"array\", \"description\": \"An array of agent names in the team composition.\", \"items\": { \"type\": \"string\" } } }, \"required\": [ \"map\", \"teamComposition\" ] } } }, \"responses\": { \"200\": { \"description\": \"Successful response with strategy recommendations\", \"content\": { \"application/json\": { \"schema\": { \"$ref\": '#/components/schemas/StrategyRecommendations' } } } }, \"400\": { \"description\": \"Bad request. Missing or invalid data (map or team composition).\" } } } }, \"components\": { \"schemas\": { \"MatchAnalysis\": { \"type\": \"object\", \"description\": \"Detailed analysis of a VALORANT match\", \"properties\": { \"performanceSummary\": { \"type\": \"string\", \"description\": \"A concise text summary of the player's overall performance.\" }, \"keyInsights\": { \"type\": \"array\", \"description\": \"A list of key insights derived from match data analysis.\", \"items\": { \"type\": \"string\" } }, \"recommendations\": { \"type\": \"array\", \"description\": \"A list of actionable recommendations for improvement.\", \"items\": { \"type\": \"string\" } }, \"sentiment\": { \"type\": \"string\", \"description\": \"The overall sentiment detected from in-game chat (e.g., POSITIVE, NEGATIVE, NEUTRAL).\" } } }, \"AgentInfo\": { \"type\": \"object\", \"description\": \"Information about a VALORANT agent\", \"properties\": { \"name\": { \"type\": \"string\", \"description\": \"The name of the agent.\" }, \"role\": { \"type\": \"string\", \"description\": \"The agent's role (e.g., Duelist, Controller, Initiator, Sentinel).\" }, \"abilities\": { \"type\": \"array\", \"description\": \"A list of the agent's abilities.\", \"items\": { \"type\": \"object\", \"properties\": { \"name\": { \"type\": \"string\", \"description\": \"The name of the ability.\" }, \"description\": { \"type\": \"string\", \"description\": \"A description of the ability.\" } } } } } }, \"StrategyRecommendations\": { \"type\": \"object\", \"description\": \"Strategic recommendations for a given map and team composition\", \"properties\": { \"generalStrategy\": { \"type\": \"string\", \"description\": \"Overall strategic approach for the map and team.\" }, \"attackStrategies\": { \"type\": \"array\", \"description\": \"Specific strategies for attacking on the map.\", \"items\": { \"type\": \"string\" } }, \"defenseStrategies\": { \"type\": \"array\", \"description\": \"Specific strategies for defending on the map.\", \"items\": { \"type\": \"string\" } } } } } }"
+            },
+            PromptOverrideConfiguration:
+              PromptConfigurations:
+                - BasePromptTemplate: |
+                    {
+                      "anthropic_version": "bedrock-2023-05-31",
+                      "system": "You are VALORANT_EDGE, an AI-powered esports strategist for VALORANT. Your mission is to help players and teams improve by providing data-driven analysis, strategic advice, and training recommendations. ",
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "$question$"
+                        },
+                        {
+                          "role": "assistant",
+                          "content": "$agent_scratchpad$"
+                        }
+                      ]
+                    }
+                  InferenceConfiguration:
+                    MaximumLength: 2048
+                    StopSequences: [ "</invoke>", "</answer>", "</error>" ]
+                    Temperature: 0
+                    TopK: 250
+                    TopP: 1
+                  ParserMode: "DEFAULT"
+                  PromptCreationMode: "OVERRIDDEN"
+                  PromptState: "ENABLED"
+                  PromptType: "ORCHESTRATION"
+          ]
+      }
+    },
+    "BedrockAgentAlias": {
+      "Type": "AWS::Bedrock::AgentAlias",
+      "DependsOn": "BedrockAgent",
+      "Properties": {
+        "AgentAliasName": "!Sub 'Alias-1'",
+        "AgentId": "!GetAtt BedrockAgent.AgentId"
+      }
+    }
+  },
+  "Outputs": {
+    "BedrockAgentName": {
+      "Description": "Name of the Bedrock Agent created",
+      "Value": "!Ref BedrockAgent"
+    },
+    "BedrockAgentAliasName": {
+      "Description": "Name of the Bedrock Agent Alias created",
+      "Value": "!Ref BedrockAgentAlias"
+    },
+    "ActionCallArn": {
+      "Description": "ARN of the invoke Lambda function",
+      "Value": "!GetAtt ActionCall.Arn"
+    }
+  }
+}
