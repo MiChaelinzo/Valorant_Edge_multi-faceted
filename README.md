@@ -5,6 +5,11 @@
 
 https://discord.com/oauth2/authorize?client_id=1293922827967270912
 
+#### Live YouTube Demo: 
+https://www.youtube.com/watch?v=RzLJLImGNTQ
+
+![gifmaker_me (1)](https://github.com/user-attachments/assets/0b9441c8-1a7e-4dca-8e74-d5b3e8a6b819)
+
 # Valorant_Edge
  Objective:
 
@@ -39,7 +44,6 @@ Agent: "I understand. Winning pistol rounds is crucial, especially on a map like
 * Finally, we'll analyze your movement and positioning during pistol rounds to identify any weaknesses.
 
 Remember, practice is key. I can provide you with targeted drills to improve your aim and decision-making during high-pressure situations like pistol rounds." 
-
 
 ![diagram](https://github.com/user-attachments/assets/eb0b90d8-3217-46c1-9612-8dd0d1e37816)
 ![crewai_diag](https://github.com/user-attachments/assets/18efde68-7d12-4014-a97e-c4f778666de0)
