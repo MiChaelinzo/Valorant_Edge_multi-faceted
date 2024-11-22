@@ -1,4 +1,4 @@
-#### The most powerful multi-faceted AI Agent LLM capable of 200k token, memory, & knowledge bases etc. for Valorant video game etc. Can perform task. 🔫 Empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring professional. Able to play Valorant and chat like a regular person etc. 
+#### The most powerful multi-faceted AI Agent LLM capable of 200k token, memory, orchestration & knowledge bases etc. for Valorant video game etc. Can perform task. 🔫 Empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring professional. Able to play Valorant and chat like a regular person etc. 
 
 #### To start it, type: !ask 
 #### and ask anything
