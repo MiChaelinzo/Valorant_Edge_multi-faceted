@@ -7,9 +7,7 @@ https://discord.com/oauth2/authorize?client_id=1293922827967270912
 
 #### Live YouTube Demo: 
 https://www.youtube.com/watch?v=RzLJLImGNTQ
-
 ![gifmaker_me (1)](https://github.com/user-attachments/assets/0b9441c8-1a7e-4dca-8e74-d5b3e8a6b819)
-
 # Valorant_Edge
  Objective:
 
