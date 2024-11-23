@@ -45,5 +45,4 @@ Agent: "I understand. Winning pistol rounds is crucial, especially on a map like
 Remember, practice is key. I can provide you with targeted drills to improve your aim and decision-making during high-pressure situations like pistol rounds." 
 
 ![diagram](https://github.com/user-attachments/assets/eb0b90d8-3217-46c1-9612-8dd0d1e37816)
-![crewai_diag](https://github.com/user-attachments/assets/18efde68-7d12-4014-a97e-c4f778666de0)
 
