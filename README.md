@@ -1,7 +1,6 @@
 #### The most powerful multi-faceted AI Agent LLM capable of 200k token, memory, orchestration & knowledge bases etc. for Valorant video game etc. Can perform task. 🔫 Empowers VALORANT players and teams to reach their full potential. It will be a versatile tool for everyone from casual players to aspiring professional. Able to play Valorant and chat like a regular person etc. 
 
-#### To start it, type: !ask 
-#### and ask anything
+#### To start it, type: !help to see commands, and !ask to ask anything and do tasks!
 
 https://discord.com/oauth2/authorize?client_id=1293922827967270912
 
